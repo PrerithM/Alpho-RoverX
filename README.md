@@ -1,108 +1,115 @@
-# 🤖 RoverMania — An AI-Powered Remote Rover
+# RoverMania
 
-A real-time Neubrutalist-styled rover command centre built with **Next.js 16**, featuring live WebRTC video streaming, keyboard/touch D-pad controls, and a **Gemini 2.5 Flash**(Use any model of choice) for an AI vision assistant that can analyse what the rover sees.
+![RoverMania Hero](./public/Rover%20HeroPage.png)
 
-> **Made by Prerith.M**
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.2.4-black?logo=next.js)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19.2.4-61DAFB?logo=react)](https://react.dev/)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![WebRTC WHEP](https://img.shields.io/badge/Streaming-WebRTC_WHEP-FF6F00)](https://github.com/bluenviron/mediamtx)
+[![Gemini 2.5 Flash](https://img.shields.io/badge/AI_Vision-Gemini_2.5_Flash-8E75C2?logo=google-gemini)](https://aistudio.google.com/)
+[![Web Audio API](https://img.shields.io/badge/Audio-Web_Audio_API_Synthesizer-4CAF50)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+
+RoverMania is a real-time, aerospace-inspired rover telemetry and command console. Engineered with **Next.js 16**, **React 19**, and **Tailwind CSS v4**, it couples sub-second **WebRTC (WHEP)** video streaming and dual-channel **WebSocket** motor control with a procedural **Web Audio API sound engine** and multimodal **Google Gemini 2.5 Flash** vision analysis.
 
 ---
 
-## Table of Contents
+## Key Features
 
-1. [System Architecture](#system-architecture)
-2. [Prerequisites](#prerequisites)
-3. [Part 1 — The Raspberry Pi Setup](#part-1--raspberry-pi-setup)
-4. [Part 2 — Web App Setup](#part-2--web-app-setup)
-5. [Using the Dashboard](#using-the-dashboard)
-6. [Environment Variables Reference (For Security)](#environment-variables-reference)
-7. [Notes for Future Ideas](#notes-for-future-ideas)
+- **Aerospace Tactical Cockpit**: Heavyweight brushed-aluminum styling with a 240-degree rotary throttle dial, tactile mechanical buttons, spatial 3D D-pad, and live telemetry indicators (latency, battery, and signal status).
+- **Procedural Cockpit Synthesizer**: Zero external audio downloads. A custom Web Audio API engine models CNC aluminum resonance, mechanical contact transients, analog high-shelf warmth, and emergency klaxons directly in the browser.
+- **Ultra-Low Latency WHEP Video**: Direct peer-to-peer WebRTC video stream through MediaMTX over standard WHEP HTTP POST signaling for glass-to-glass latency under 200ms.
+- **Multimodal AI Reconnaissance**: Edge-rendered Gemini 2.5 Flash API endpoint captures live video frames on command to detect obstacles, terrain types, and visual landmarks.
+- **Dynamic In-App Network Switcher**: Real-time IP switching modal with quick presets (Lab Default, Local AP, Home Network, and Local Simulator) stored in `localStorage`—no codebase edits needed to change target rovers.
+- **Session Security & Operator Gate**: Password-protected operator sessions backed by Edge middleware and HTTP-only cookie guards.
 
 ---
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────┐
-│         Your Browser / PC           │
-│    Next.js Dashboard (port 3000)    │
-│  WebRTC Video ──►  Live Feed        │
-│  WebSocket  ──►    Drive Commands   │
-│  Gemini AI  ──►    Frame Analysis   │
-└──────────────┬──────────────────────┘
-               │ Same Wi-Fi Network
-               ▼
-┌─────────────────────────────────────┐
-│         Raspberry Pi (rover)        │
-│  IP: 10.248.130.62                  │
-│  ┌─────────────┐  ┌───────────────┐ │
-│  │  MediaMTX   │  │  WS Server    │ │
-│  │  port 8889  │  │  port 8765    │ │
-│  │ (WebRTC/    │  │ (Motor L/R    │ │
-│  │  WHEP)      │  │  commands)    │ │
-│  └─────────────┘  └───────────────┘ │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                 Operator Ground Station                     │
+│               Next.js 16 Cockpit (Port 3000)                │
+│                                                             │
+│   ┌───────────────────┐  ┌──────────────────────────────┐   │
+│   │   Tactile HUD     │  │      Procedural Web Audio    │   │
+│   │ D-Pad, Throttle,  │  │ Resonant Clicks, Relays,     │   │
+│   │ Telemetry Gauge   │  │ Sirens (Zero External Audio) │   │
+│   └────────┬──────────┘  └──────────────────────────────┘   │
+└────────────┼──────────────────────────────┬─────────────────┘
+             │                              │
+     WebSocket (Port 8765)           WebRTC WHEP (Port 8889)
+     Motor Control Packets          H.264 Video Stream (<200ms)
+     JSON { L: float, R: float }            │
+             │                              │
+             ▼                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Raspberry Pi (Rover Core)                   │
+│                                                             │
+│   ┌─────────────────────────┐  ┌────────────────────────┐   │
+│   │  Python WebSocket Host  │  │  MediaMTX Media Server │   │
+│   │   (RPi.GPIO / Motors)   │  │  (Pi Camera Source)    │   │
+│   └─────────────────────────┘  └────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ Frame Snapshot (Base64)
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│               Google Gemini 2.5 Flash API                   │
+│          Edge Multimodal Frame & Terrain Analysis           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Prerequisites
+## Hardware Requirements
 
-| Requirement | Version |
-|---|---|
-| Node.js | ≥ 18.x |
-| npm | ≥ 9.x |
-| Raspberry Pi OS | 64-bit recommended |
-| Raspberry Pi Camera | v2 or HQ Camera Module |
-| Google Gemini API Key | [Get one free here](https://aistudio.google.com/app/apikey) |
+| Component | Recommendation | Function |
+|---|---|---|
+| **SBC** | Raspberry Pi 4 Model B (or Pi 5 / Pi 3B+) | Primary on-board computer |
+| **Camera** | Raspberry Pi Camera Module (v2, v3, or HQ) | Low-latency 720p/30fps video capture |
+| **Motor Driver** | L298N, TB6612FNG, or L9110S dual H-Bridge | DC motor power switching & PWM direction |
+| **Chassis & Motors** | 2WD or 4WD robotic chassis with geared DC motors | Locomotion |
+| **Power Source** | Independent 5V 3A USB-C battery pack (Pi) + 7.4V/11.1V Li-Po (Motors) | Clean, isolated power without brownouts |
 
 ---
 
 ## Part 1 — Raspberry Pi Setup
 
-### Step 1: Connect the rover to your local Wi-Fi Network
+### 1. Network & Camera Initialization
 
-Boot your Pi and connect it to the **same Wi-Fi network** as your computer. Find its local IP address:
+Ensure the Raspberry Pi connects to the same local Wi-Fi network as your operator workstation, then note its local IP:
 
 ```bash
 hostname -I
 ```
 
-> 📌 Note the IP (e.g., `10.248.130.62`). You will need it in Step 4.
-
----
-
-### Step 2: Enable the Camera
+Enable camera support via configuration:
 
 ```bash
 sudo raspi-config
 ```
-
-Go to **Interface Options → Camera** and enable it. Reboot.
-
-Verify the camera is detected:
+Navigate to **Interface Options** -> **Camera**, enable it, and reboot. Verify detection:
 
 ```bash
 libcamera-hello --list-cameras
 ```
 
----
+### 2. MediaMTX (WebRTC / WHEP Server)
 
-### Step 3: Install MediaMTX (WebRTC Video Streamer used for video Streaming)
-
-MediaMTX handles streaming your camera feed over WebRTC using the WHEP protocol.
+MediaMTX serves WebRTC streams directly over WHEP:
 
 ```bash
-# Download the latest release for ARM64 (Pi 4/5) or ARM (Pi 3)
+# Download ARM64 binary (for 64-bit Pi OS)
 wget https://github.com/bluenviron/mediamtx/releases/latest/download/mediamtx_linux_arm64v8.tar.gz
 
-# Extract
 tar -xzf mediamtx_linux_arm64v8.tar.gz
-
-# Move to a permanent location
 sudo mv mediamtx /usr/local/bin/
 sudo mv mediamtx.yml /usr/local/etc/
 ```
 
-Edit `mediamtx.yml` to add your camera source:
+Edit `/usr/local/etc/mediamtx.yml` to define the camera path:
 
 ```yaml
 paths:
@@ -113,26 +120,15 @@ paths:
     rpiCameraFPS: 30
 ```
 
-Start MediaMTX:
-
-```bash
-mediamtx /usr/local/etc/mediamtx.yml
-```
-
-Verify video is streaming by opening in a browser on your PC:
-`http://<PI_IP>:8889/cam/` — you should see a WebRTC player.
-
-**To run MediaMTX automatically on boot:**
+Configure MediaMTX to run continuously as a systemd service:
 
 ```bash
 sudo nano /etc/systemd/system/mediamtx.service
 ```
 
-Paste:
-
 ```ini
 [Unit]
-Description=MediaMTX Rover Stream
+Description=MediaMTX WHEP WebRTC Streamer
 After=network.target
 
 [Service]
@@ -145,17 +141,16 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable mediamtx
-sudo systemctl start mediamtx
+sudo systemctl daemon-reload
+sudo systemctl enable --now mediamtx
 ```
 
----
+> [!TIP]
+> You can test the stream directly by visiting `http://<PI_IP>:8889/cam/` in any desktop browser.
 
-### Step 4: Set Up the WebSocket Motor Control Server
+### 3. Motor Controller WebSocket Daemon
 
-Create a Python WebSocket server on the Pi that listens for `{ L: float, R: float }` JSON commands and drives your motors accordingly.
-
-Install dependencies:
+Install required Python modules on the Pi:
 
 ```bash
 pip install websockets RPi.GPIO
@@ -165,51 +160,50 @@ Create `/home/pi/rover_ws.py`:
 
 ```python
 import asyncio
-import websockets
 import json
+import websockets
 import RPi.GPIO as GPIO
 
-# --- Configure your GPIO motor pins below ---
+# BCM pin definitions (adjust to your wiring)
 LEFT_FORWARD  = 17
 LEFT_BACKWARD = 18
 RIGHT_FORWARD = 22
 RIGHT_BACKWARD = 23
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 for pin in [LEFT_FORWARD, LEFT_BACKWARD, RIGHT_FORWARD, RIGHT_BACKWARD]:
     GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.LOW)
 
-def drive(left, right):
-    GPIO.output(LEFT_FORWARD,   GPIO.HIGH if left  > 0 else GPIO.LOW)
-    GPIO.output(LEFT_BACKWARD,  GPIO.HIGH if left  < 0 else GPIO.LOW)
-    GPIO.output(RIGHT_FORWARD,  GPIO.HIGH if right > 0 else GPIO.LOW)
-    GPIO.output(RIGHT_BACKWARD, GPIO.HIGH if right < 0 else GPIO.LOW)
+def drive(left: float, right: float):
+    GPIO.output(LEFT_FORWARD,   GPIO.HIGH if left  > 0.1 else GPIO.LOW)
+    GPIO.output(LEFT_BACKWARD,  GPIO.HIGH if left  < -0.1 else GPIO.LOW)
+    GPIO.output(RIGHT_FORWARD,  GPIO.HIGH if right > 0.1 else GPIO.LOW)
+    GPIO.output(RIGHT_BACKWARD, GPIO.HIGH if right < -0.1 else GPIO.LOW)
 
 async def handler(websocket):
-    print("Controller connected")
+    print("Telemetry link established with cockpit.")
     try:
         async for message in websocket:
             data = json.loads(message)
-            drive(data.get("L", 0), data.get("R", 0))
+            drive(float(data.get("L", 0)), float(data.get("R", 0)))
+    except websockets.ConnectionClosed:
+        pass
     finally:
-        drive(0, 0)  # Stop motors on disconnect
-        print("Controller disconnected")
+        drive(0, 0)
+        print("Telemetry link dropped. Motors halted.")
 
 async def main():
     async with websockets.serve(handler, "0.0.0.0", 8765):
-        print("WebSocket motor server running on port 8765")
-        await asyncio.Future()  # Run forever
+        print("WebSocket motor server active on port 8765.")
+        await asyncio.Future()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-**Run the motor server:**
-
-```bash
-python3 /home/pi/rover_ws.py
-```
-
-**Auto-start on boot:**
+Register and start the motor control service:
 
 ```bash
 sudo nano /etc/systemd/system/rover-ws.service
@@ -217,7 +211,7 @@ sudo nano /etc/systemd/system/rover-ws.service
 
 ```ini
 [Unit]
-Description=Rover WebSocket Motor Server
+Description=Rover WebSocket Motor Controller
 After=network.target
 
 [Service]
@@ -230,48 +224,34 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable rover-ws
-sudo systemctl start rover-ws
+sudo systemctl daemon-reload
+sudo systemctl enable --now rover-ws
 ```
 
 ---
 
-### Step 5: Update the Pi IP in the Web App
+## Part 2 — Web Application Setup
 
-Open `rovermania/src/app/page.tsx` and update line 21 with your Pi's actual IP:
-
-```ts
-const PI_IP = "10.248.130.62"; // ← Change this to your Pi's IP
-```
-Note: You can also use VS Code Remote-SSH, too. 
----
-
-## Part 2 — Web App Setup
-
-### Step 1: Clone the Repo
+### 1. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/PrerithM/AdvancedRover.git
-cd AdvancedRover/rovermania
-```
-
-### Step 2: Install Dependencies
-
-```bash
+git clone https://github.com/PrerithM/Rover-Mania.git
+cd Rover-Mania
 npm install
 ```
 
-### Step 3: Configure Environment Variables
+### 2. Configure Environment Variables
 
-Create `.env.local` in the `rovermania/` directory:
+Create `.env.local` in the project root:
 
 ```env
-GEMINI_API_KEY=your_actual_gemini_api_key_here
+GEMINI_API_KEY=your_google_gemini_api_key_here
 ```
 
-> Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey) It is as far for 21/04/2026. I am using 2.5 flash here.
+> [!NOTE]
+> Obtain a Gemini API key at [Google AI Studio](https://aistudio.google.com/app/apikey). The application utilizes the **Gemini 2.5 Flash** model for sub-second multimodal frame inspection.
 
-### Step 4: Run the Development Server
+### 3. Run the Development Server
 
 ```bash
 npm run dev
@@ -279,7 +259,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Step 5: Build for Production (Optional)
+To produce an optimized production bundle:
 
 ```bash
 npm run build
@@ -288,128 +268,95 @@ npm run start
 
 ---
 
-## Using the Dashboard
+## Cockpit Operations Manual
 
-### 🔐 Login
+### Authentication & Boot Sequence
 
-The dashboard is password-protected. When you first open the app you'll be redirected to the login page.
+1. Accessing `/dashboard` redirects unauthenticated sessions to `/login`.
+2. Enter the default operator passphrase: `PrerithRover`.
+3. The landing screen initializes a 3-second system self-test verifying operator handle, audio context, and telemetry endpoints.
+4. Click **Quick Connect** or configure custom network targets via the **Rover Network Settings** gear icon.
 
-**Default password:** `PrerithRover` 
+> [!IMPORTANT]
+> Change the default password in `src/app/api/auth/route.ts` prior to exposing your cockpit to shared or public networks.
 
-> To change the password, edit `src/app/api/auth/route.ts` line 9.
+### Drive Controls & Actuation
 
----
-
-### 🎮 Driving the Rover - Simple COntrols
-
-| Control | Action |
-|---|---|
-| `W` / `↑` | Move Forward |
-| `S` / `↓` | Move Backward |
-| `A` / `←` | Turn Left |
-| `D` / `→` | Turn Right |
-| Release key | Stop |
-| On-screen D-Pad | Touch / click to drive |
-
-The **connection status** badge at the top shows whether the dashboard is connected to the rover's WebSocket server. If it shows **Disconnected**, ensure the Pi's motor server is running.
-
----
-
-### 📹 Live Video Feed
-
-The video feed uses **WebRTC (WHEP protocol)** directly from MediaMTX — no middleman, ultra-low latency. Make sure MediaMTX is running on the Pi and you are on the **same network**.
-
----
-
-### 🤖 AI Vision (Gemini)
-
-Click the **🤖 button** (in fullscreen mode) or use the **Rover Vision** panel (in normal mode) to activate the AI assistant.
-
-- Type any question in the chat box and press **Enter** or **Send**
-- The AI will capture the **current video frame** and analyze it using **Gemini 2.5 Flash**
-- Example prompts:
-  - *"Is there an obstacle ahead?"*
-  - *"What color is the object in front of the rover?"*
-  - *"Describe the terrain."*
-
----
-
-### ⛶ Fullscreen Mode
-
-Click the **⛶ Fullscreen** button on the video panel to enter immersive mode:
-- D-Pad overlaid bottom-left
-- AI chat accessible via the 🤖 FAB button bottom-right
-- Click **Exit Fullscreen** to return
-
----
-
-## Environment Variables Reference
-
-| Variable | Required | Description |
+| Input | Actuation | Command Payload |
 |---|---|---|
-| `GEMINI_API_KEY` | ✅ Yes | Your Google Gemini API key for AI vision |
+| `W` / `Arrow Up` | Forward Drive | `{ L: 1.0 * speed, R: 1.0 * speed }` |
+| `S` / `Arrow Down` | Reverse Drive | `{ L: -1.0 * speed, R: -1.0 * speed }` |
+| `A` / `Arrow Left` | Pivot Left | `{ L: -0.85 * speed, R: 0.85 * speed }` |
+| `D` / `Arrow Right` | Pivot Right | `{ L: 0.85 * speed, R: -0.85 * speed }` |
+| Key Release | Safe Neutral | `{ L: 0.0, R: 0.0 }` |
+| `Space` / **E-STOP** | Emergency Stop | Immediate hard stop + audio klaxon |
+| **Rotary Throttle Dial** | Speed Multiplier | Scales output from `0.1x` (10%) to `1.0x` (100%) |
+
+### Dynamic Target IP Switching
+
+You do not need to modify code to switch networks or test with multiple rovers:
+
+1. Click the **Network / IP Settings** icon in the TopBar or Landing screen.
+2. Select a preconfigured preset (**Lab Default**, **Local AP**, **Home Network**, or **Simulator**) or input a custom IPv4 address.
+3. Save changes—both WebSocket motor telemetry and WHEP video feeds reconnect instantaneously and persist in your browser's local storage.
+
+### Multimodal AI Vision Inspection
+
+1. Navigate to the **Rover Vision / Tactical Analysis** panel on the right side of the cockpit.
+2. Click any of the predefined reconnaissance queries (*"Scan for obstacles"*, *"Analyze terrain stability"*, *"Identify key objects"*) or type a custom prompt.
+3. The client captures the active video frame from the `<canvas>` buffer and relays it to the `/api/vision` Edge handler for Gemini multimodal evaluation.
 
 ---
 
-## Notes for Future Ideas
-
-### 🔋 Planned / Suggested Upgrades
-
-#### Hardware
-- **Motor Driver with PWM** — Replace simple GPIO on/off with PWM speed control (e.g., L298N or TB6612FNG) for variable speed and smoother driving
-- **Battery Voltage Monitor** — Add an INA219 sensor and display rover battery level on the dashboard
-- **Ultrasonic / LIDAR Sensor** — Mount a distance sensor and display a proximity warning in the UI
-- **Servo Camera Mount** — Add a pan/tilt servo for the camera and expose controls in the dashboard
-- **GPS Module** — Add a GPS module (e.g., Neo-6M) and display rover coordinates/path on a map widget
-
-#### Software
-- **HTTPS / Secure Deployment** — Deploy on Cloudflare Pages or Vercel so the dashboard is accessible remotely without needing to be on the same LAN. Use Cloudflare Tunnel to expose the Pi's WebSocket and video server securely to the internet
-- **Password Hashing** — Replace the plaintext password comparison in `auth/route.ts` with a hashed secret stored in an environment variable (`ROVER_PASSWORD_HASH`)
-- **Gamepad API** — Add support for physical USB/Bluetooth gamepads using the browser `Gamepad API`
-- **AI Autonomous Mode** — Use Gemini's vision in a loop to give the rover basic obstacle-avoidance logic from AI descriptions
-- **Recording / Clip Saving** — Add a "Record" button that saves video clips from the WebRTC stream using the `MediaRecorder API`
-- **Multi-User / Room System** — Add session rooms so multiple users can watch the stream but only one can control at a time (using a "Claim Control" button)
-- **Telemetry Panel** — Add a telemetry sidebar with a command history log, ping latency, and FPS counter for the video stream
-
-#### Cloudflare Deployment Checklist
-- [ ] Set `GEMINI_API_KEY` in Cloudflare Pages → Settings → Environment Variables
-- [ ] Use **Cloudflare Tunnel** (`cloudflared`) to expose `ws://<PI_IP>:8765` and `http://<PI_IP>:8889` to public HTTPS endpoints
-- [ ] Update `PI_IP` in `page.tsx` to use the tunnel URLs
-- [ ] Set `secure: true` on the auth cookie (already conditional on `NODE_ENV === production`)
-
----
-
-## 🗂️ Project Structure
+## Project Structure
 
 ```
-AdvancedRover/
-└── rovermania/                 # Next.js Web App
-    ├── src/
-    │   ├── proxy.ts            # Auth middleware (cookie guard)
-    │   └── app/
-    │       ├── page.tsx        # Main rover dashboard UI
-    │       ├── layout.tsx      # Root layout
-    │       ├── globals.css     # Global styles
-    │       ├── login/
-    │       │   └── page.tsx    # Password login page
-    │       └── api/
-    │           ├── auth/
-    │           │   └── route.ts  # Login endpoint (sets cookie)
-    │           └── vision/
-    │               └── route.ts  # Gemini AI vision endpoint
-    ├── .env.local              # Your secret API key (never commit this)
-    ├── next.config.ts
-    └── package.json
+Rover-Mania/
+├── public/
+│   ├── Rover HeroPage.png       # Cockpit identity & hero banner
+│   └── textures/                # Brushed-metal tactile surface textures
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── auth/route.ts    # Session token management & password verification
+│   │   │   └── vision/route.ts  # Gemini 2.5 Flash Edge vision analysis endpoint
+│   │   ├── dashboard/           # Tactical HUD cockpit interface
+│   │   ├── login/               # Password gate page
+│   │   ├── globals.css          # Tailwind CSS v4 design tokens
+│   │   ├── layout.tsx           # Application layout shell
+│   │   └── page.tsx             # Diagnostic boot sequence & quick-connect launch
+│   ├── components/
+│   │   ├── AiAnalysisPanel.tsx  # Interactive Gemini AI assistant panel
+│   │   ├── ControlPanel.tsx     # Connection metrics & Emergency Stop actuator
+│   │   ├── DrivePanel.tsx       # 240° rotary throttle dial & pedal controls
+│   │   ├── IpSettingsModal.tsx  # Dynamic rover target IP switcher & presets
+│   │   ├── SpatialDPad.tsx      # 3D spatial directional pad with touch/keyboard states
+│   │   ├── TopBar.tsx           # Real-time telemetry status bar (ping, signal, battery)
+│   │   └── VisorFeed.tsx        # Low-latency WebRTC WHEP viewport & frame capture
+│   ├── hooks/
+│   │   ├── useRoverWebRTC.ts    # Direct WHEP WebRTC connection hook
+│   │   └── useRoverWebSocket.ts # Motor control WebSocket client with reconnect logic
+│   ├── utils/
+│   │   └── cockpitAudio.ts      # Pure Web Audio API synthesized acoustics engine
+│   └── proxy.ts                 # Next.js authentication middleware guard
+├── next.config.ts
+├── package.json
+└── tsconfig.json
 ```
 
 ---
 
-## ⚠️ Security Notes
+## Remote Access via Cloudflare Tunnel
 
-- **Never commit `.env.local`** — it contains your Gemini API key. It is already in `.gitignore`.
-- The default password `PrerithRover` is hardcoded — change it before any public deployment and move it to an environment variable.
-- The dashboard is local-network-only by default. Do not expose it to the internet without setting up HTTPS and a proper tunnel.
+To operate your rover over the internet without exposing raw local ports:
 
----
+```bash
+# Install cloudflared on the Raspberry Pi
+sudo apt-get install cloudflared
 
-*Built with Next.js 16 · Gemini 2.5 Flash · MediaMTX · WebRTC · Neubrutalism UI*
+# Route your WebRTC & WebSocket endpoints securely
+cloudflared tunnel --url http://localhost:8889
+cloudflared tunnel --url http://localhost:8765
+```
+
+Update your cockpit's **Target IP / Host** in the settings modal to use your secure tunnel hostname.
